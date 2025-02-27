@@ -70,7 +70,7 @@ class BrowserUseTool(BaseTool):
 
         try:
             browserUseApi = BrowserUseAPI(
-                url = os.environ["BROWSER_USE_API"]
+                url = os.environ["BROWSER_USE_API_URL"]
             )
             results = browserUseApi.run(browser_use_objective)
         except:
