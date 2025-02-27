@@ -1,16 +1,15 @@
-from flask import Flask, request, jsonify
-import threading
-import time
-
+import asyncio
 import logging
+import os
+import time
+import threading
+
+from flask import Flask, request, jsonify
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
-
-import asyncio
-import os
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
@@ -20,21 +19,20 @@ from browser_use import Agent
 from browser_use.browser.browser import Browser, BrowserConfig
 from browser_use.browser.context import BrowserContext, BrowserContextConfig
 
+load_dotenv()
+
 app = Flask(__name__)
 
 # Initialize a lock to ensure only one agent call at a time
 lock = threading.Lock()
 
-# Simulate the Browser-Use agent (replace with actual logic)
 def invoke_browser_use_agent(objective):
     logger.info(f"Starting Browser-Use agent with objective: {objective}")
 
-    load_dotenv()
-
-    async def run_search():
+    # You can modify the settings for browser_use agent here.
+    async def run_browser_use():
         agent = Agent(
             task=objective,
-
             browser_context=BrowserContext(
                 browser=Browser(),
             ),
@@ -46,8 +44,9 @@ def invoke_browser_use_agent(objective):
         )
         results = await agent.run()
         return results
+        
     # Run the async function from synchronous code
-    results = asyncio.run(run_search())
+    results = asyncio.run(run_browser_use())
     logger.info("Browser-Use agent finished.")
     return {
         "status": "success", 
@@ -57,13 +56,10 @@ def invoke_browser_use_agent(objective):
 
 @app.route('/probe', methods=['GET'])
 def probe():
-    return "the service is alive", 200
+    return "browser_use_service is alive", 200
 
 @app.route('/browser_use_invoke', methods=['POST'])
 def browser_use_invoke():
-    if lock.locked():
-        return jsonify({"status": "error", "message": "Browser-Use agent is currently busy. Please try again later."}), 429
-
     objective = request.json.get("objective")
     if not objective:
         return jsonify({"status": "error", "message": "No objective provided."}), 400
