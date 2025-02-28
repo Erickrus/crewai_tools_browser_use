@@ -30,27 +30,45 @@ tasks = {}
 # Initialize a thread pool executor for running tasks in the background
 executor = ThreadPoolExecutor(max_workers=1)
 
+sensitive_data = {
+    'x_name': os.environ['USERNAME'],
+    'x_password': os.environ['PASSWORD']
+}
+
 # Function to process the task in the background
 def process_task(task_id, objective):
-    logger.info(f"Starting Browser-Use agent with objective: {objective}")
+    logger.info(f"Starting Browser-Use agent with objective: {objective}\n")
 
-    async def run_browser_use():
-        agent = Agent(
-            task=objective,
-            browser_context=BrowserContext(
-                browser=Browser(),
-            ),
-            llm=ChatOpenAI(
-                model=os.environ['MODEL_NAME'],  # 'gpt-4o-mini'
-                api_key=os.environ['OPENAI_API_KEY']
-            ),
-            use_vision=False,
-        )
-        results = await agent.run()
+    async def run_browser_use(objective):
+        try:
+            agent = Agent(
+                task=objective,
+                browser_context=BrowserContext(
+                    browser=Browser(),
+                    # config=BrowserContextConfig(
+                    #     browser_window_size={'width': 540, 'height': 768},
+                    #     viewport_expansion=768
+                    # ),
+                ),
+                llm=ChatOpenAI(
+                    model=os.environ['MODEL_NAME'],
+                    api_key=os.environ['OPENAI_API_KEY']
+                ),
+                sensitive_data=sensitive_data,
+                use_vision=False,
+            )
+            results = await agent.run()
+        except Exception as e:
+            logger.error(f"Error in agent.run(): {e}", exc_info=True)
+            results = {}
         return results
 
-    # Run the async function
-    results = asyncio.run(run_browser_use())
+    # Ensure we are in a new event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    results = loop.run_until_complete(run_browser_use(objective))
+    loop.close()
+
     logger.info("Browser-Use agent finished.")
 
     # Update the task status and results
@@ -60,13 +78,14 @@ def process_task(task_id, objective):
         "results": results
     }
 
+
 @app.route('/probe', methods=['GET'])
 def probe():
     return "browser_use_service is alive", 200
 
 @app.route('/submit', methods=['POST'])
 def submit():
-    objective = request.json.get("objective")
+    objective = request.json.get("browser_use_objective")
     if not objective:
         return jsonify({"status": "error", "message": "No objective provided."}), 400
 
@@ -94,4 +113,4 @@ def query(task_id):
         return jsonify(task), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, port=4999)
+    app.run(debug=True, host='0.0.0.0', port=4999)
