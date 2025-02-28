@@ -27,6 +27,7 @@ class BrowserUseAPI:
     def submit_task(self, browser_use_objective):
         """Submit a task and get a task_id."""
         try:
+            logger.info(f"{self.url}/submit")
             response = requests.post(
                 f"{self.url}/submit",
                 json={"browser_use_objective": browser_use_objective}
@@ -43,6 +44,7 @@ class BrowserUseAPI:
     def query_task_status(self, task_id):
         """Query the status of a task using task_id."""
         try:
+            logger.info(f"{self.url}/query/{task_id}")
             response = requests.get(f"{self.url}/query/{task_id}")
             if response.status_code == 200:
                 return {"status": "completed", "message":"completed", "data": response.json()}
@@ -65,9 +67,9 @@ class BrowserUseToolSchema(BaseModel):
 
 
 class BrowserUseTool(BaseTool):
-    name: str = """Use "BrowserUse" to do the GUI Automation based on web browser"""
+    name: str = """A tool to do the GUI Automation based on web browser"""
     description: str = (
-        "A tool to complete automation task on web browser autonomously. "
+        "A tool to complete GUI automation task on web browser autonomously. "
         "param: browser_use_objective is used to define the general task for the automation, "
         "and this param is usually some detailed steps of a web automation. "
         "usually specified in multi-line, in the form of a numbered list e.g. 1, 2, 3, ... "
@@ -76,10 +78,10 @@ class BrowserUseTool(BaseTool):
     args_schema: Type[BaseModel] = BrowserUseToolSchema
 
     def _run(self, **kwargs: Any) -> Any:
-        """Execute the GUI automation operation."""
+        """Execute the GUI automation instructions on a web browser."""
         browser_use_objective = kwargs.get("browser_use_objective")
         timeout = 300  # 5 minutes timeout
-        check_interval = 1  # Check status every 1 second
+        check_interval = 2  # Check status every 1 second
 
         try:
             browser_use_api = BrowserUseAPI(url=os.environ["BROWSER_USE_API_URL"])
