@@ -64,8 +64,8 @@ def process_task(task_id, objective):
 def probe():
     return "browser_use_service is alive", 200
 
-@app.route('/browser_use_invoke', methods=['POST'])
-def browser_use_invoke():
+@app.route('/submit', methods=['POST'])
+def submit():
     objective = request.json.get("objective")
     if not objective:
         return jsonify({"status": "error", "message": "No objective provided."}), 400
@@ -82,8 +82,8 @@ def browser_use_invoke():
     # Return the task ID immediately
     return jsonify({"status": "processing", "task_id": task_id}), 202
 
-@app.route('/browser_use_status/<task_id>', methods=['GET'])
-def browser_use_status(task_id):
+@app.route('/query/<task_id>', methods=['GET'])
+def query(task_id):
     if task_id not in tasks:
         return jsonify({"status": "error", "message": "Task ID not found."}), 404
 
